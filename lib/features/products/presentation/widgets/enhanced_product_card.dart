@@ -1,0 +1,397 @@
+import 'package:flutter/material.dart';
+import 'package:crazy_phone_pos/features/products/data/models/product_model.dart';
+import 'package:crazy_phone_pos/core/utils/responsive_helper.dart';
+import 'package:crazy_phone_pos/core/constants/app_colors.dart';
+import '../../../../core/di/dependency_injection.dart';
+import '../../../auth/data/models/user_model.dart';
+import '../../../auth/presentation/cubit/user_cubit.dart';
+
+class EnhancedProductCard extends StatelessWidget {
+  final Product product;
+  final VoidCallback onDelete;
+  final VoidCallback onEdit;
+  final Color statusColor;
+  final String statusText;
+
+  const EnhancedProductCard({
+    super.key,
+    required this.product,
+    required this.onDelete,
+    required this.onEdit,
+    required this.statusColor,
+    required this.statusText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final qty = product.quantity;
+    final min = product.minQuantity;
+    final isLowStock = qty > 0 && qty <= min;
+    final isOutOfStock = qty == 0;
+    final userType = getIt<UserCubit>().currentUser.userType;
+
+    // Fixed font sizes for consistent layout
+    const double titleSize = 16;
+    const double small = 12;
+    const double value = 14;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isOutOfStock
+              ? AppColors.errorColor.withOpacity(0.5)
+              : isLowStock
+                  ? AppColors.warningColor.withOpacity(0.5)
+                  : AppColors.borderColor,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // 🔹 Product Name & Category section
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: titleSize,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                if (product.category.isNotEmpty)
+                  Text(
+                    product.category,
+                    style: TextStyle(
+                      fontSize: small,
+                      color: AppColors.mutedColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(width: 16),
+
+          // 🔹 Price & Status
+          Expanded(
+            flex: 2,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                   children: [
+                     Icon(Icons.monetization_on_outlined, size: 14, color: AppColors.mutedColor),
+                     const SizedBox(width: 4),
+                     Text("سعر البيع", style: TextStyle(fontSize: small, color: AppColors.mutedColor)),
+                   ],
+                 ),
+                 const SizedBox(height: 2),
+                Text(
+                  "${product.price.toStringAsFixed(2)}",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: value,
+                    color: AppColors.successColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                _StatusChip(
+                  text: statusText,
+                  color: statusColor,
+                  font: small,
+                ),
+              ],
+            ),
+          ),
+
+           const SizedBox(width: 16),
+
+          // 🔹 Quantity info
+          Expanded(
+            flex: 3,
+            child: Row(
+              children: [
+                 Column(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                     Row(
+                      children: [
+                        Icon(Icons.inventory_2_outlined, size: 14, color: AppColors.mutedColor),
+                        const SizedBox(width: 4),
+                        Text("الكمية", style: TextStyle(fontSize: small, color: AppColors.mutedColor)),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                     Text("${qty}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                   ],
+                 ),
+                 const SizedBox(width: 12),
+                 if(userType == UserType.manager)
+                  Column(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                      Row(
+                      children: [
+                        Icon(Icons.local_offer_outlined, size: 14, color: AppColors.mutedColor),
+                         const SizedBox(width: 4),
+                        Text("جملة", style: TextStyle(fontSize: small, color: AppColors.mutedColor)),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                     Text("${product.wholesalePrice}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.accentGold)),
+                   ],
+                 ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(width: 12),
+
+          // 🔹 Actions
+          if (userType != UserType.cashier)
+             Row(
+              children: [
+                IconButton(
+                  onPressed: onEdit, 
+                  icon: const Icon(Icons.edit_rounded, color: AppColors.primaryColor),
+                  tooltip: 'تعديل',
+                ),
+                IconButton(
+                  onPressed: onDelete, 
+                  icon: const Icon(Icons.delete_rounded, color: AppColors.errorColor),
+                  tooltip: 'حذف',
+                ),
+              ],
+             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  final String text;
+  final Color color;
+  final double font;
+  const _StatusChip({
+    required this.text,
+    required this.color,
+    required this.font,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: font,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final double small;
+  final double value;
+  final int qty;
+  final int min;
+  final Product product;
+  final bool isManager;
+
+  const _InfoRow({
+    required this.small,
+    required this.value,
+    required this.qty,
+    required this.min,
+    required this.product,
+    required this.isManager,
+  });
+
+  Widget infoItem(String label, String val, IconData icon, Color color) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 3),
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: value + 2),
+            const SizedBox(height: 2),
+            Text(label,
+                style: TextStyle(
+                    fontSize: small, color: AppColors.mutedColor, height: 1.2)),
+            Text(val,
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: value + 1,
+                    color: color)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        infoItem(
+          'المتوفر',
+          qty.toString(),
+          Icons.inventory_2_rounded,
+          qty == 0 ? AppColors.errorColor : AppColors.primaryColor,
+        ),
+        infoItem(
+          'الحد الأدنى',
+          min.toString(),
+          Icons.trending_down_rounded,
+          AppColors.warningColor,
+        ),
+        if (isManager)
+          infoItem(
+            'جملة',
+            product.wholesalePrice.toStringAsFixed(2),
+            Icons.local_offer_rounded,
+            AppColors.accentGold,
+          ),
+      ],
+    );
+  }
+}
+
+class _ActionsBar extends StatelessWidget {
+  final VoidCallback edit;
+  final VoidCallback del;
+  final double value;
+
+  const _ActionsBar({
+    required this.edit,
+    required this.del,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: ActionButton(
+            text: 'تعديل',
+            icon: Icons.edit_rounded,
+            baseColor: AppColors.primaryColor,
+            onPressed: edit,
+            fontSize: value + 1,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: ActionButton(
+            text: 'حذف',
+            icon: Icons.delete_rounded,
+            baseColor: AppColors.errorColor,
+            onPressed: del,
+            fontSize: value + 1,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class ActionButton extends StatefulWidget {
+  final String text;
+  final IconData icon;
+  final Color baseColor;
+  final VoidCallback onPressed;
+  final double? fontSize;
+
+  const ActionButton({
+    super.key,
+    required this.text,
+    required this.icon,
+    required this.baseColor,
+    required this.onPressed,
+    this.fontSize,
+  });
+
+  @override
+  State<ActionButton> createState() => _ActionButtonState();
+}
+
+class _ActionButtonState extends State<ActionButton> {
+  bool hovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final f = (widget.fontSize ?? 13).clamp(11, 15).toDouble();
+    final bgColor = hovering
+        ? widget.baseColor.withOpacity(0.9)
+        : widget.baseColor.withOpacity(0.12);
+    final fgColor = hovering ? Colors.white : widget.baseColor;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => hovering = true),
+      onExit: (_) => setState(() => hovering = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 130),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: InkWell(
+          onTap: widget.onPressed,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(widget.icon, color: fgColor, size: f + 2),
+                const SizedBox(width: 5),
+                Text(
+                  widget.text,
+                  style: TextStyle(
+                    color: fgColor,
+                    fontWeight: FontWeight.w700,
+                    fontSize: f,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
