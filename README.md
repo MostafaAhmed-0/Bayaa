@@ -116,8 +116,4 @@ flutter run -d windows
 This project is proprietary software. All rights reserved.
 © 2026 **Bayaa Systems**.
 
----
 
-<center>
-  <sub>Built with ❤️ by <a href="https://github.com/Desha29">Mostafa Amr</a></sub>
-</center>
